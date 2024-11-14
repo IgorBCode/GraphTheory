@@ -1,72 +1,53 @@
 import pandas as pd
-import numpy as np
-import heapq
 
-# import csv
-df = pd.read_csv("distances_matrix.csv", index_col=0)
+file_path = 'distances_matrix.csv'
+df = pd.read_csv(file_path, index_col=0)
 
-# replace -1 with infinity
-df = df.replace(-1, np.inf)
 
-# create graph in form of dictionary of dictionaries
-graph = {city: {adj_city: df.loc[city, adj_city] for adj_city in df.columns if df.loc[city, adj_city] != np.inf}
-         for city in df.index}
+def dijkstra(adj_matrix, start_node, end_node):
+    n = len(adj_matrix)
+    distances = {node: float('inf') for node in adj_matrix.index}  # Initialize distances
+    distances[start_node] = 0
+    previous_nodes = {node: None for node in adj_matrix.index}  # To store path
+    unvisited = set(adj_matrix.index)  # All nodes as unvisited
 
-# Dijkstra’s algorithm to find the shortest path and reconstruct the path
-def dijkstra(graph, start, end):
-    # Initialize the distance dictionary with infinity for all nodes except the start node
-    distances = {city: float('inf') for city in graph}
-    distances[start] = 0
+    while unvisited:
+        # Get node with smallest distance
+        current_node = min(unvisited, key=lambda node: distances[node])
 
-    # store city path
-    previous_cities = {city: None for city in graph}
+        if distances[current_node] == float('inf'):
+            break  # Remaining nodes are inaccessible from start_node
 
-    # Priority queue to manage visiting nodes in order of smallest distance
-    pq = [(0, start)]  # (distance, city)
+        unvisited.remove(current_node)
 
-    while pq:
-        current_distance, current_city = heapq.heappop(pq)
+        # Update distances for neighbors
+        for neighbor, distance in adj_matrix.loc[current_node].items():
+            if distance != -1 and neighbor in unvisited:  # -1 indicates no direct path
+                new_distance = distances[current_node] + distance
+                if new_distance < distances[neighbor]:
+                    distances[neighbor] = new_distance
+                    previous_nodes[neighbor] = current_node
 
-        # Skip visited cities
-        if current_distance > distances[current_city]:
-            continue
+        # Stop if we reach the end node
+        if current_node == end_node:
+            break
 
-        # Check all adjacent cities and update their distances if a shorter path is found
-        for neighbor, weight in graph[current_city].items():
-            distance = current_distance + weight
-            if distance < distances[neighbor]:
-                distances[neighbor] = distance
-                previous_cities[neighbor] = current_city
-                heapq.heappush(pq, (distance, neighbor))
-
-    # If the end city is unreachable, return None
-    if distances[end] == float('inf'):
-        return None, None
-
-    # Create full path
+    # Create path from start to end
     path = []
-    current_city = end
-    while current_city is not None:
-        path.append(current_city)
-        current_city = previous_cities[current_city]
-    path = path[::-1]  # Reverse the path to get it from start to end
+    node = end_node
+    while node is not None:
+        path.append(node)
+        node = previous_nodes[node]
+    # reverse path to show correctly
+    path = path[::-1]
 
-    return path, distances[end]
-
-
-# Function to print the shortest path with distance
-def print_shortest_path(start_city, end_city):
-    path, total_distance = dijkstra(graph, start_city, end_city)
-
-    if path is not None:
-        path_str = " -> ".join(path)
-        print(f"Shortest path from {start_city} to {end_city} is:")
-        print(f"{path_str}")
-        print(f"Total Distance: {total_distance}")
+    if distances[end_node] == float('inf'):
+        print(f"No path exists from {start_node} to {end_node}.")
     else:
-        print(f"There is no path from {start_city} to {end_city}")
+        print(f"Path from {start_node} to {end_node}: {' -> '.join(path)}")
+        print(f"Total distance: {distances[end_node]}")
 
-start_city = "Boston, MA"
-end_city = "Olympia, WA"
 
-print_shortest_path(start_city, end_city)
+start = 'Madison, WI'  # Replace with actual starting node name
+end = 'Santa Fe, NM'  # Replace with actual ending node name
+dijkstra(df, start, end)
