@@ -1,41 +1,16 @@
 import pandas as pd
-import heapq
 import math
-import os
+import heapq
 
-# Get the current working directory dynamically
-current_dir = os.getcwd()
+# Load the distance matrix
+file_path = 'distances_matrix.csv'
+df = pd.read_csv(file_path, index_col=0)
 
-# file path using the current working directory
-file_path = os.path.join(current_dir, 'distances_matrix.csv')
-
-# Try to load the CSV file
-try:
-    df = pd.read_csv(file_path, index_col=0)
-except FileNotFoundError:
-    print(f"File not found at {file_path}. Please check the path.")
-    exit(1)
-
-# Extract city names (node names) from the DataFrame index
+# Convert DataFrame to a NumPy array and get node names as a list
+adj_matrix = df.to_numpy()
 nodes = df.index.tolist()
 
-# Convert DataFrame to a NumPy array for easier access in the algorithm
-adj_matrix = df.to_numpy()
-
-# Haversine formula to calculate the distance between two points (lat1, lon1) and (lat2, lon2)
-def haversine(lat1, lon1, lat2, lon2):
-    R = 6371  # Radius of the Earth in kilometers
-    phi1 = math.radians(lat1)
-    phi2 = math.radians(lat2)
-    delta_phi = math.radians(lat2 - lat1)
-    delta_lambda = math.radians(lon2 - lon1)
-    
-    a = math.sin(delta_phi / 2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2)**2
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-    
-    return R * c  # Returns distance in kilometers
-
-# All 50 states coordinates to use for the Euclidian heuristic
+# 50 states coordinates
 city_coordinates = {
     'Montgomery, AL': (32.3792, -86.3077),
     'Juneau, AK': (58.3019, -134.4197),
@@ -90,67 +65,92 @@ city_coordinates = {
     'Cheyenne, WY': (41.1400, -104.8202)
 }
 
-# Create a heuristic using the Haversine formula (straight-line distance to the goal)
-def create_heuristic(end_city):
+# Haversine formula to calculate distance between two points
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371  # Earth's radius in km
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    delta_phi = math.radians(lat2 - lat1)
+    delta_lambda = math.radians(lon2 - lon1)
+    a = math.sin(delta_phi / 2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
+
+# Generate heuristic with dynamic scaling
+def create_heuristic(adj_matrix, end_city, city_coordinates):
     heuristic = []
     end_lat, end_lon = city_coordinates[end_city]
-    
+
+    # Calculate average edge weight in the adjacency matrix
+    valid_distances = [dist for row in adj_matrix for dist in row if dist != -1]
+    avg_adj_distance = sum(valid_distances) / len(valid_distances) if valid_distances else 1
+
+    # Calculate average Haversine distance
+    haversine_distances = []
     for node in nodes:
-        # Get the coordinates for each city
-        node_lat, node_lon = city_coordinates[node]
-        # Calculate the straight-line distance to the goal (using Haversine)
-        distance = haversine(node_lat, node_lon, end_lat, end_lon)
-        heuristic.append(distance)  # Use the Haversine distance as the heuristic
-    
+        node_lat, node_lon = city_coordinates.get(node, (0, 0))
+        haversine_distances.append(haversine(node_lat, node_lon, end_lat, end_lon))
+    avg_haversine_distance = sum(haversine_distances) / len(haversine_distances) if haversine_distances else 1
+
+    # Compute scaling factor
+    scaling_factor = avg_adj_distance / avg_haversine_distance
+
+    # Generate heuristic
+    for node in nodes:
+        node_lat, node_lon = city_coordinates.get(node, (0, 0))
+        h = haversine(node_lat, node_lon, end_lat, end_lon) * scaling_factor
+        heuristic.append(h)
+
     return heuristic
 
-# A* algorithm to find the shortest path from start_city to end_city
+# A* Algorithm
 def a_star(adj_matrix, start_city, end_city, heuristic):
     n = len(adj_matrix)
+    g = [float('inf')] * n
+    f = [float('inf')] * n
+    previous_nodes = [None] * n
     start_idx = nodes.index(start_city)
     end_idx = nodes.index(end_city)
-
-    # Initialize costs and priority queue
-    g = [float('inf')] * n  # Actual cost from start to current node
-    f = [float('inf')] * n  # Estimated cost from start to goal (f = g + h)
-    previous_nodes = [None] * n
     g[start_idx] = 0
     f[start_idx] = heuristic[start_idx]
-
-    pq = [(f[start_idx], start_idx)]  # Priority queue (f(n), node_index)
-
+    pq = [(f[start_idx], start_idx)]
     while pq:
         _, current_idx = heapq.heappop(pq)
-
         if current_idx == end_idx:
             path = []
             while current_idx is not None:
                 path.append(nodes[current_idx])
                 current_idx = previous_nodes[current_idx]
             path.reverse()
-            print(f"A* Path: {' -> '.join(path)}")
-            print(f"A* Total Distance: {g[end_idx]}")
-            return
-
+            return path, g[end_idx]
         for neighbor_idx in range(n):
             distance = adj_matrix[current_idx][neighbor_idx]
-            if distance != -1:  # Ignore -1 (no direct path)
+            if distance != -1:
                 tentative_g = g[current_idx] + distance
                 if tentative_g < g[neighbor_idx]:
                     g[neighbor_idx] = tentative_g
                     f[neighbor_idx] = tentative_g + heuristic[neighbor_idx]
                     previous_nodes[neighbor_idx] = current_idx
                     heapq.heappush(pq, (f[neighbor_idx], neighbor_idx))
+    return [], float('inf')
 
-    print(f"No path exists from {start_city} to {end_city}.")
+# Main program
+print("\n********* A* Algorithm *********")
+start_city = input("Enter starting city (e.g., Montgomery, AL): ").strip()
+end_city = input("Enter destination city (e.g., Cheyenne, WY): ").strip()
 
-# Main program loop
-start_city = "Montgomery, AL"  # Example start city
-end_city = "Cheyenne, WY"     # Example end city
+if start_city not in nodes or end_city not in nodes:
+    print("Invalid city names. Please ensure they exist in the dataset.")
+else:
+    # Create heuristic
+    heuristic = create_heuristic(adj_matrix, end_city, city_coordinates)
 
-# Create the heuristic for the destination city
-heuristic = create_heuristic(end_city)
+    # Run A* algorithm
+    path, distance = a_star(adj_matrix, start_city, end_city, heuristic)
 
-# Run A* algorithm with the new heuristic
-print(f"\nRunning A* from {start_city} to {end_city}:")
-a_star(adj_matrix, start_city, end_city, heuristic)
+    # Print results
+    if distance == float('inf'):
+        print(f"No path exists from {start_city} to {end_city}.")
+    else:
+        print(f"Path: {' -> '.join(path)}")
+        print(f"Total Distance: {distance}")
