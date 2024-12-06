@@ -59,7 +59,7 @@ city_coordinates = {
     'Montpelier, VT': (44.2601, -72.5754),
     'Richmond, VA': (37.5407, -77.4360),
     'Olympia, WA': (47.0379, -122.9007),
-    'Washington DC': (38.9072, -77.0369),
+    'Washington, DC': (38.9072, -77.0369),
     'Charleston, WV': (38.3498, -81.6326),
     'Madison, WI': (43.0731, -89.4012),
     'Cheyenne, WY': (41.1400, -104.8202)
@@ -135,22 +135,23 @@ def a_star(adj_matrix, start_city, end_city, heuristic):
     return [], float('inf')
 
 # Main program
-print("\n********* A* Algorithm *********")
-start_city = input("Enter starting city (e.g., Montgomery, AL): ").strip()
-end_city = input("Enter destination city (e.g., Cheyenne, WY): ").strip()
+if __name__ == "__main__":
+    print("\n********* A* Algorithm *********")
+    start_city = input("Enter starting city (e.g., Montgomery, AL): ").strip()
+    end_city = input("Enter destination city (e.g., Cheyenne, WY): ").strip()
 
-if start_city not in nodes or end_city not in nodes:
-    print("Invalid city names. Please ensure they exist in the dataset.")
-else:
-    # Create heuristic
-    heuristic = create_heuristic(adj_matrix, end_city, city_coordinates)
-
-    # Run A* algorithm
-    path, distance = a_star(adj_matrix, start_city, end_city, heuristic)
-
-    # Print results
-    if distance == float('inf'):
-        print(f"No path exists from {start_city} to {end_city}.")
+    if start_city not in nodes or end_city not in nodes:
+        print("Invalid city names. Please ensure they exist in the dataset.")
     else:
-        print(f"Path: {' -> '.join(path)}")
-        print(f"Total Distance: {distance}")
+        # Create heuristic
+        heuristic = create_heuristic(adj_matrix, end_city, city_coordinates)
+
+        # Run A* algorithm
+        path, distance = a_star(adj_matrix, start_city, end_city, heuristic)
+
+        # Print results
+        if distance == float('inf'):
+            print(f"No path exists from {start_city} to {end_city}.")
+        else:
+            print(f"Path: {' -> '.join(path)}")
+            print(f"Total Distance: {distance}")
