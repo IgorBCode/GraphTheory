@@ -1,7 +1,5 @@
 import pandas as pd
-# import numpy as np
 import heapq
-# from AStar import *
 
 file_path = 'distances_matrix.csv'
 df = pd.read_csv(file_path, index_col=0)
@@ -55,7 +53,7 @@ def dijkstra(adj_matrix, start_city, end_city):
 
 
 if __name__ == "__main__":
-    print("\n*****  Welcome to flight path calculator.  *****")
+    print("\n*****  Dijkstra's Algorithm  *****")
     # program loop
     while True:
         start = input("Enter starting city, format: City, ST (or x to exit): ").strip()
