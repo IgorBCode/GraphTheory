@@ -1,6 +1,7 @@
 # To run program:
-- "distances_matrix.csv" must be in the same directory as the .py files.
 - Install pandas package.
+> [!IMPORTANT]
+> For the program to work, "distances_matrix.csv" must be in the same directory as the .py files.
 
 # source.py
 Contains standalone program running Dijkstra's Algorithm.
