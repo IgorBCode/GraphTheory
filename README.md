@@ -13,9 +13,9 @@ Run by using "py source.py" (Windows), "python3 source.py" (MacOS)
 This program will first ask for a starting point, you must enter a city and state combination in
 this format: "City, ST". State abbreviation must have both letters capitalized, and the city and
 state must be separated by a comma. Example: "Olympia, WA"
+The second prompt will ask for a destination city. Same formatting rules apply.
 
 ## Exit
-The second prompt will ask for a destination city. Same formatting rules apply.
 To exit the program input "x" into either prompt.
 
 
